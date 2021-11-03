@@ -10,7 +10,12 @@ import (
 	"strings"
 )
 
-type EasyClient struct {
+type Response struct {
+	Status int
+	Body   []byte
+}
+
+type EasyC struct {
 	c *http.Client
 
 	method string          // http method
@@ -26,7 +31,7 @@ type EasyClient struct {
 }
 
 // Do the request
-func (ec *EasyClient) Do() (*http.Response, error) {
+func (ec *EasyC) Do() (*http.Response, error) {
 	if ec.method == "" {
 		ec.method = "GET"
 	}
@@ -63,7 +68,7 @@ func (ec *EasyClient) Do() (*http.Response, error) {
 	)
 
 	defer func() {
-		*ec = EasyClient{}
+		*ec = EasyC{}
 	}()
 
 	if ec.ctx != nil {
@@ -88,84 +93,84 @@ func (ec *EasyClient) Do() (*http.Response, error) {
 }
 
 //
-func (ec *EasyClient) DoWithStatus(f func(int, []byte, error)) {
+func (ec *EasyC) DoWithStatus(f func(*Response, error)) {
 	response, err := ec.Do()
 	if err != nil {
-		f(0, nil, err)
+		f(nil, err)
 	} else {
 		defer response.Body.Close()
 		body, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			f(0, nil, err)
+			f(nil, err)
 		} else {
-			f(response.StatusCode, body, nil)
+			f(&Response{response.StatusCode, body}, nil)
 		}
 	}
 }
 
 // async request with callback wrapped
-func (ec *EasyClient) Done(f func(*http.Response, error)) {
+func (ec *EasyC) Done(f func(*http.Response, error)) {
 	go func() {
 		f(ec.Do())
 	}()
 }
 
 // async request with callback wrapped with status and response body parameters
-func (ec *EasyClient) DoneWithStatus(f func(int, []byte, error)) {
+func (ec *EasyC) DoneWithStatus(f func(*Response, error)) {
 	go func() {
 		ec.DoWithStatus(f)
 	}()
 }
 
-func (ec *EasyClient) WithContext(ctx context.Context) *EasyClient {
+func (ec *EasyC) WithContext(ctx context.Context) *EasyC {
 	ec.ctx = ctx
 	return ec
 }
 
 // default is GET
-func (ec *EasyClient) WithMethod(method string) *EasyClient {
+func (ec *EasyC) WithMethod(method string) *EasyC {
 	ec.method = method
 	return ec
 }
 
 // default is http
-func (ec *EasyClient) WithScheme(scheme string) *EasyClient {
+func (ec *EasyC) WithScheme(scheme string) *EasyC {
 	ec.scheme = scheme
 	return ec
 }
 
 // default is localhost
-func (ec *EasyClient) WithHost(host string) *EasyClient {
+func (ec *EasyC) WithHost(host string) *EasyC {
 	ec.host = host
 	return ec
 }
 
 // default is /
-func (ec *EasyClient) WithPath(path string) *EasyClient {
+func (ec *EasyC) WithPath(path string) *EasyC {
 	ec.path = path
 	return ec
 }
 
 // full path with scheme, host, url path
-func (ec *EasyClient) WithUrl(url string) *EasyClient {
+func (ec *EasyC) WithUrl(url string) *EasyC {
 	ec.url = url
 	return ec
 }
 
 // default is http.DefaultClient from net/http package
-func (ec *EasyClient) WithClient(c *http.Client) *EasyClient {
+func (ec *EasyC) WithClient(c *http.Client) *EasyC {
 	ec.c = c
 	return ec
 }
 
 // default is nil
-func (ec *EasyClient) WithBody(body []byte) *EasyClient {
+func (ec *EasyC) WithBody(body []byte) *EasyC {
 	ec.body = body
 	return ec
 }
 
 // query string key-value pair
-func (ec *EasyClient) WithQuery(key, val string) *EasyClient {
+func (ec *EasyC) WithQuery(key, val string) *EasyC {
 	if ec.param == nil {
 		ec.param = url.Values{}
 	}
@@ -174,13 +179,13 @@ func (ec *EasyClient) WithQuery(key, val string) *EasyClient {
 }
 
 // query string object
-func (ec *EasyClient) WithQuerys(params url.Values) *EasyClient {
+func (ec *EasyC) WithQuerys(params url.Values) *EasyC {
 	ec.param = params
 	return ec
 }
 
 // form data key-value pair
-func (ec *EasyClient) WithForm(key, val string) *EasyClient {
+func (ec *EasyC) WithForm(key, val string) *EasyC {
 	if ec.form == nil {
 		ec.form = url.Values{}
 	}
@@ -189,13 +194,13 @@ func (ec *EasyClient) WithForm(key, val string) *EasyClient {
 }
 
 // form data object
-func (ec *EasyClient) WithForms(forms url.Values) *EasyClient {
+func (ec *EasyC) WithForms(forms url.Values) *EasyC {
 	ec.form = forms
 	return ec
 }
 
 // header key-value pair
-func (ec *EasyClient) WithHeader(key, val string) *EasyClient {
+func (ec *EasyC) WithHeader(key, val string) *EasyC {
 	if ec.header == nil {
 		ec.header = http.Header{}
 	}
@@ -204,7 +209,7 @@ func (ec *EasyClient) WithHeader(key, val string) *EasyClient {
 }
 
 // header object
-func (ec *EasyClient) WithHeaders(headers http.Header) *EasyClient {
+func (ec *EasyC) WithHeaders(headers http.Header) *EasyC {
 	ec.header = headers
 	return ec
 }
